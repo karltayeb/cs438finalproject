@@ -1,25 +1,100 @@
 from prep import *
 from sklearn.svm import SVC
+from sklearn.cross_validation import KFold
 from sklearn import cross_validation
 import pickle
 
-#data = Prep(50)   #prep data, take top 50 features
-#brca_svm = SVC(kernel='linear', C=1, probability=True).fit(data.brca_expression_train, data.brca_event_train)
-#pickle.dump(brca_svm, open('brca50_svm.p','wb'))
-#prad_svm = SVC(kernel='linear', C=1, probability=True).fit(data.prad_expression_train, data.prad_event_train)
-#pickle.dump(brca_svm, open('prad50_svm.p','wb'))
+
+data = Prep(50)
+
+fivefold = KFold(data.brca_event_train.size, 5)
+# save folds so that we can test later
+pickle.dump(fivefold, open('brca50_folds.p', 'wb'))
+models = np.empty(5, dtype=object)
+i = 0
+for train, validate in fivefold:
+	X_train, X_test = data.brca_expression_train[train, :], data.brca_expression_train[validate, :]
+	y_train, y_test = data.brca_event_train[train], data.brca_event_train[validate]
+	svm = SVC(kernel='linear', C=1, probability=True).fit(X_train, y_train)
+	models[i] = svm
+	i += 1
+# save array of svms into pickle
+pickle.dump(models, open('brca50_svms.p', 'wb'))
+
+fivefold = KFold(data.prad_event_train.size, 5)
+# save folds so that we can test later
+pickle.dump(fivefold, open('prad50_folds.p', 'wb'))
+models = np.empty(5, dtype=object)
+i = 0
+for train, validate in fivefold:
+	X_train, X_test = data.prad_expression_train[train, :], data.prad_expression_train[validate, :]
+	y_train, y_test = data.prad_event_train[train], data.prad_event_train[validate]
+	svm = SVC(kernel='linear', C=1, probability=True).fit(X_train, y_train)
+	models[i] = svm
+	i += 1
+# save array of svms into pickle
+pickle.dump(models, open('prad50_svms.p', 'wb'))
+
+
 
 data = Prep(100)
-brca_svm = SVC(kernel='linear', C=1, probability=True).fit(data.brca_expression_train, data.brca_event_train)
-pickle.dump(brca_svm, open('brca100_svm.p', 'wb'))
-prad_svm = SVC(kernel='linear', C=1, probability=True).fit(data.prad_expression_train, data.prad_event_train)
-pickle.dump(brca_svm, open('prad100_svm.p','wb'))
+
+fivefold = KFold(data.brca_event_train.size, 5)
+# save folds so that we can test later
+pickle.dump(fivefold, open('brca100_folds.p', 'wb'))
+models = np.empty(5, dtype=object)
+i = 0
+for train, validate in fivefold:
+	X_train, X_test = data.brca_expression_train[train, :], data.brca_expression_train[validate, :]
+	y_train, y_test = data.brca_event_train[train], data.brca_event_train[validate]
+	svm = SVC(kernel='linear', C=1, probability=True).fit(X_train, y_train)
+	models[i] = svm
+	i += 1
+# save array of svms into pickle
+pickle.dump(models, open('brca100_svms.p', 'wb'))
+
+fivefold = KFold(data.prad_event_train.size, 5)
+# save folds so that we can test later
+pickle.dump(fivefold, open('prad100_folds.p', 'wb'))
+models = np.empty(5, dtype=object)
+i = 0
+for train, validate in fivefold:
+	X_train, X_test = data.prad_expression_train[train, :], data.prad_expression_train[validate, :]
+	y_train, y_test = data.prad_event_train[train], data.prad_event_train[validate]
+	svm = SVC(kernel='linear', C=1, probability=True).fit(X_train, y_train)
+	models[i] = svm
+	i += 1
+# save array of svms into pickle
+pickle.dump(models, open('prad100_svms.p', 'wb'))
+
+
 
 data = Prep(150)
-brca_svm = SVC(kernel='linear', C=1, probability=True).fit(data.brca_expression_train, data.brca_event_train)
-pickle.dump(brca_svm, open('brca150_svm.p', 'wb'))
-prad_svm = SVC(kernel='linear', C=1, probability=True).fit(data.prad_expression_train, data.prad_event_train)
-pickle.dump(brca_svm, open('prad150_svm.p','wb'))
 
-#brca_scores = cross_validation.cross_val_score(
-#		brca_svm, data.brca_expression_test, data.brca_event_test, cv=5, scoring='f1_weighted')
+fivefold = KFold(data.brca_event_train.size, 5)
+# save folds so that we can test later
+pickle.dump(fivefold, open('brca150_folds.p', 'wb'))
+models = np.empty(5, dtype=object)
+i = 0
+for train, validate in fivefold:
+	X_train, X_test = data.brca_expression_train[train, :], data.brca_expression_train[validate, :]
+	y_train, y_test = data.brca_event_train[train], data.brca_event_train[validate]
+	svm = SVC(kernel='linear', C=1, probability=True).fit(X_train, y_train)
+	models[i] = svm
+	i += 1
+# save array of svms into pickle
+pickle.dump(models, open('brca150_svms.p', 'wb'))
+
+fivefold = KFold(data.prad_event_train.size, 5)
+# save folds so that we can test later
+pickle.dump(fivefold, open('prad150_folds.p', 'wb'))
+models = np.empty(5, dtype=object)
+i = 0
+for train, validate in fivefold:
+	X_train, X_test = data.prad_expression_train[train, :], data.prad_expression_train[validate, :]
+	y_train, y_test = data.prad_event_train[train], data.prad_event_train[validate]
+	svm = SVC(kernel='linear', C=1, probability=True).fit(X_train, y_train)
+	models[i] = svm
+	i += 1
+# save array of svms into pickle
+pickle.dump(models, open('prad150_svms.p', 'wb'))
