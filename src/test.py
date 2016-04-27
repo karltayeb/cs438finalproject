@@ -5,7 +5,7 @@ from sklearn import cross_validation
 import pickle
 
 
-data = Prep(50)
+data = Prep(50, logtransform=True, scaledata=True)
 
 fivefold = KFold(data.brca_event_train.size, 5)
 # save folds so that we can test later
@@ -36,8 +36,7 @@ for train, validate in fivefold:
 pickle.dump(models, open('prad50_svms.p', 'wb'))
 
 
-
-data = Prep(100)
+data = Prep(100, logtransform=True, scaledata=True)
 
 fivefold = KFold(data.brca_event_train.size, 5)
 # save folds so that we can test later
@@ -69,7 +68,7 @@ pickle.dump(models, open('prad100_svms.p', 'wb'))
 
 
 
-data = Prep(150)
+data = Prep(150, logtransform=True, scaledata=True)
 
 fivefold = KFold(data.brca_event_train.size, 5)
 # save folds so that we can test later
