@@ -11,9 +11,10 @@ class Prep:
 	praddatapath = '../data/PRADdataset.p'
 	pradfollowuppath = '../data/PRADfollowUpDataset.p'
 
-	def __init__ (self, n=-1, logtransform=False, scaledata=False):
+	def __init__ (self, n=-1, logtransform=False, scaledata=False, featureselect='mixed'):
 		self.brca_expression_train, self.brca_expression_test, self.brca_event_train, self.brca_event_test, self.prad_expression_train, self.prad_expression_test, self.prad_event_train, self.prad_event_test = self.loadData(logtransform, scaledata)
-		self.select_features(n)
+		self.select_features(n, featureselect)
+		self.dat = (self.brca_expression_train, self.brca_expression_test, self.brca_event_train, self.brca_event_test, self.prad_expression_train, self.prad_expression_test, self.prad_event_train, self.prad_event_test)
 
 	def loadData(self, logtransform, scaledata):
 		# load expr
@@ -64,7 +65,7 @@ class Prep:
 
 		return brca_expression_train, brca_expression_test, brca_event_train, brca_event_test, prad_expression_train, prad_expression_test, prad_event_train, prad_event_test
 
-	def select_features(self, n):
+	def select_features(self, n, featureselect):
 		"""
 		Rank features by signal-to-noise
 		Takes n from brca, n from prad, and n overlap
@@ -97,20 +98,40 @@ class Prep:
 		prad_featurerank = np.argsort(-1 * prad_snr)
 		joint_featurerank = np.argsort(-1 * low_snr)
 
-		if (n != -1):
-			indices = np.empty(0)
-			i = 0
-			while indices.size < n:
-				if not (indices == np.where(brca_featurerank == i)[0]).any() and indices.size < n:
-					indices = np.append(indices, np.where(brca_featurerank == i)[0])
-				if not (indices == np.where(prad_featurerank == i)[0]).any() and indices.size < n:
-					indices = np.append(indices, np.where(prad_featurerank == i)[0])
-				if not (indices == np.where(joint_featurerank == i)[0]).any() and indices.size < n:
-					indices = np.append(indices, np.where(joint_featurerank == i)[0])
-					i += 1
+		if featureselect is 'mixed':
+			if (n != -1):
+				indices = np.empty(0)
+				i = 0
+				while indices.size < n:
+					if not (indices == np.where(brca_featurerank == i)[0]).any() and indices.size < n:
+						indices = np.append(indices, np.where(brca_featurerank == i)[0])
+					if not (indices == np.where(prad_featurerank == i)[0]).any() and indices.size < n:
+						indices = np.append(indices, np.where(prad_featurerank == i)[0])
+					if not (indices == np.where(joint_featurerank == i)[0]).any() and indices.size < n:
+						indices = np.append(indices, np.where(joint_featurerank == i)[0])
+						i += 1
 
-			indices = indices.astype(int)
-			self.brca_expression_train = self.brca_expression_train[:,indices]
-			self.brca_expression_test = self.brca_expression_test[:,indices]
-			self.prad_expression_train = self.prad_expression_train[:,indices]
-			self.prad_expression_test = self.prad_expression_test[:,indices]
+				indices = indices.astype(int)
+				self.brca_expression_train = self.brca_expression_train[:,indices]
+				self.brca_expression_test = self.brca_expression_test[:,indices]
+				self.prad_expression_train = self.prad_expression_train[:,indices]
+				self.prad_expression_test = self.prad_expression_test[:,indices]
+
+		if featureselect is 'seperate':
+			if (n != -1):
+				brca_indices = np.where(brca_featurerank < n)[0].astype(int)
+				prad_indices = np.where(prad_featurerank < n)[0].astype(int)
+
+				self.brca_expression_train = self.brca_expression_train[:,brca_indices]
+				self.brca_expression_test = self.brca_expression_test[:,brca_indices]
+				self.prad_expression_train = self.prad_expression_train[:,prad_indices]
+				self.prad_expression_test = self.prad_expression_test[:,prad_indices]
+
+		if featureselect is 'overlap':
+			if (n != -1):
+				indices = np.where(joint_featurerank < n)[0].astype(int)
+
+				self.brca_expression_train = self.brca_expression_train[:,indices]
+				self.brca_expression_test = self.brca_expression_test[:,indices]
+				self.prad_expression_train = self.prad_expression_train[:,indices]
+				self.prad_expression_test = self.prad_expression_test[:,indices]				
