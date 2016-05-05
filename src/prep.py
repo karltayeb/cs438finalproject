@@ -11,9 +11,8 @@ class Prep:
 	praddatapath = '../data/PRADdataset.p'
 	pradfollowuppath = '../data/PRADfollowUpDataset.p'
 
-	def __init__ (self, n=-1, logtransform=False, scaledata=False, featureselect='mixed'):
+	def __init__ (self, logtransform=False, scaledata=False):
 		self.brca_expression_train, self.brca_expression_test, self.brca_event_train, self.brca_event_test, self.prad_expression_train, self.prad_expression_test, self.prad_event_train, self.prad_event_test = self.loadData(logtransform, scaledata)
-		self.select_features(n, featureselect)
 		self.dat = (self.brca_expression_train, self.brca_expression_test, self.brca_event_train, self.brca_event_test, self.prad_expression_train, self.prad_expression_test, self.prad_event_train, self.prad_event_test)
 
 	def loadData(self, logtransform, scaledata):
@@ -65,42 +64,53 @@ class Prep:
 
 		return brca_expression_train, brca_expression_test, brca_event_train, brca_event_test, prad_expression_train, prad_expression_test, prad_event_train, prad_event_test
 
-	def select_features(self, n, featureselect):
+	def select_features(self, n, featureselect, brca_indices=None, prad_indices=None):
 		"""
-		Rank features by signal-to-noise
-		Takes n from brca, n from prad, and n overlap
-		this is an attempt to pick meaningful features for both prediction tasks
+		Rank features by signal-to-noise for a subset of the training data given by indices
+		featureselect i the policy for pixking features
+		'seperate' picks the top features for each cancer seperately, CANT do multitask with this
+		'mixed' takes top brca, top prad, top overlap iteratively
+		'topmixed' takes top brca, top prad iteratively to n
+		
+		returns the indices of the features to be used
 		"""
 
-		brca_new_tumor = np.where(self.brca_event_train == True)[0]
-		brca_no_tumor = np.where(self.brca_event_train == False)[0]
-		prad_new_tumor = np.where(self.prad_event_train == True)[0]
-		prad_no_tumor = np.where(self.prad_event_train == False)[0]
+		# if we dont specify indices, pick features on all training data
+		if brca_indices is None:
+			brca_indices = np.arange(0, self.brca_event_train.size, 1)
+
+		if prad_indices is None:
+			prad_indices = np.arange(0, self.prad_event_train.size, 1)
+
+
+		brca_new_tumor = np.where(self.brca_event_train[brca_indices] == True)[0]
+		brca_no_tumor = np.where(self.brca_event_train[brca_indices] == False)[0]
+		prad_new_tumor = np.where(self.prad_event_train[prad_indices] == True)[0]
+		prad_no_tumor = np.where(self.prad_event_train[prad_indices] == False)[0]
 
 		#brca_p = stats.ttest_ind(self.brca_expression_train[brca_new_tumor,:], self.brca_expression_train[brca_no_tumor,:], axis=0)[1]
 		#prad_p = stats.ttest_ind(self.prad_expression_train[prad_new_tumor,:], self.brca_expression_train[prad_no_tumor,:], axis=0)[1]
 
 		brca_snr = np.abs(
-					np.mean(self.brca_expression_train[brca_new_tumor,:], axis=0)
-					- np.mean(self.brca_expression_train[brca_no_tumor,:], axis=0)
+					np.mean(self.brca_expression_train[brca_indices, :][brca_new_tumor,:], axis=0)
+					- np.mean(self.brca_expression_train[brca_indices, :][brca_no_tumor,:], axis=0)
 					) / 2
 		prad_snr = np.abs(
-					np.mean(self.prad_expression_train[prad_new_tumor,:], axis=0)
-					- np.mean(self.brca_expression_train[prad_no_tumor, :], axis=0)
+					np.mean(self.prad_expression_train[prad_indices, :][prad_new_tumor,:], axis=0)
+					- np.mean(self.brca_expression_train[prad_indices, :][prad_no_tumor, :], axis=0)
 					) / 2
 
-		#high_p = np.amax(np.c_[brca_p, prad_p], axis=1)
 		low_snr = np.amin(np.c_[brca_snr, prad_snr], axis=1)
-		#high_snr = np.amax(np.c_[brca_snr, prad_snr], axis=1)
 
 		#featurerank = np.argsort(high_p)
 		brca_featurerank = np.argsort(-1 * brca_snr)
 		prad_featurerank = np.argsort(-1 * prad_snr)
 		joint_featurerank = np.argsort(-1 * low_snr)
+		
+		indices = np.empty(0)  # indices of features we are selecting
 
 		if featureselect is 'mixed':
 			if (n != -1):
-				indices = np.empty(0)
 				i = 0
 				while indices.size < n:
 					if not (indices == np.where(brca_featurerank == i)[0]).any() and indices.size < n:
@@ -109,29 +119,31 @@ class Prep:
 						indices = np.append(indices, np.where(prad_featurerank == i)[0])
 					if not (indices == np.where(joint_featurerank == i)[0]).any() and indices.size < n:
 						indices = np.append(indices, np.where(joint_featurerank == i)[0])
-						i += 1
+					i += 1
 
 				indices = indices.astype(int)
-				self.brca_expression_train = self.brca_expression_train[:,indices]
-				self.brca_expression_test = self.brca_expression_test[:,indices]
-				self.prad_expression_train = self.prad_expression_train[:,indices]
-				self.prad_expression_test = self.prad_expression_test[:,indices]
 
+		if featureselect is 'topmixed':
+			if (n != -1):
+				i = 0
+				while indices.size < n:
+					if not (indices == np.where(brca_featurerank == i)[0]).any() and indices.size < n:
+						indices = np.append(indices, np.where(brca_featurerank == i)[0])
+					if not (indices == np.where(prad_featurerank == i)[0]).any() and indices.size < n:
+						indices = np.append(indices, np.where(prad_featurerank == i)[0])
+					i += 1
+
+				indices = indices.astype(int)
+
+		"""
 		if featureselect is 'seperate':
 			if (n != -1):
 				brca_indices = np.where(brca_featurerank < n)[0].astype(int)
 				prad_indices = np.where(prad_featurerank < n)[0].astype(int)
-
-				self.brca_expression_train = self.brca_expression_train[:,brca_indices]
-				self.brca_expression_test = self.brca_expression_test[:,brca_indices]
-				self.prad_expression_train = self.prad_expression_train[:,prad_indices]
-				self.prad_expression_test = self.prad_expression_test[:,prad_indices]
+		"""
 
 		if featureselect is 'overlap':
 			if (n != -1):
 				indices = np.where(joint_featurerank < n)[0].astype(int)
 
-				self.brca_expression_train = self.brca_expression_train[:,indices]
-				self.brca_expression_test = self.brca_expression_test[:,indices]
-				self.prad_expression_train = self.prad_expression_train[:,indices]
-				self.prad_expression_test = self.prad_expression_test[:,indices]				
+		return indices		
