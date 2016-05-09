@@ -135,6 +135,14 @@ class Prep:
 
 				indices = indices.astype(int)
 
+		if featureselect is 'prad':
+			if (n != -1):
+				indices = np.where(prad_featurerank < n)[0]
+
+		if featureselect is 'brca':
+			if (n != -1):
+				indices = np.where(prad_featurerank < n)[0]
+
 		"""
 		if featureselect is 'seperate':
 			if (n != -1):
